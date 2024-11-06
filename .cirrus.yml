@@ -1,0 +1,23 @@
+# https://github.com/fort-nix/nix-bitcoin/blob/master/.cirrus.yml
+task:
+  environment:
+    CIRRUS_CLONE_DEPTH: 1
+  arm_container:
+    # Defined in https://github.com/nix-community/docker-nixpkgs
+    image: nixpkgs/nix-flakes:latest
+  matrix:
+    - name: modules_test
+      arm_container:
+        kvm: true
+        memory: 4G
+        cpu: 4
+      environment:
+        matrix:
+          - scenario: default
+      # This script is run as root
+      build_script:
+        - echo "sandbox = true" >> /etc/nix/nix.conf
+        - echo "system-features = kvm benchmark big-parallel nixos-test uid-range" >> /etc/nix/nix.conf
+        - nix build -L github:nixos/nixpkgs/refs/pull/348588/merge#nixosTests.swapspace
+        - for i in {1..3}; do echo $i > run; nix build github:nixos/nixpkgs/refs/pull/348588/merge#nixosTests.swapspace --rebuild || break; done
+
